@@ -146,12 +146,16 @@ class ProController:
 
     def brcm_spi_dump(s, fname):
         dump = []
+        SPI_FLASH_SIZE = 0x80000
         MAX_SPI_XFER = 0x1d
-        for offset in range(0, 0x100000, MAX_SPI_XFER):
+        offset = 0
+        while offset < SPI_FLASH_SIZE:
             # +0x16 looks like it might be a spi_read_cmd, but offset is
             # always 0 and size is always 0x20...
             resp_offset = 0x16 + 4 + 1
-            data = s.brcm_spi_read(offset, MAX_SPI_XFER)[resp_offset:resp_offset+MAX_SPI_XFER]
+            read_len = min(MAX_SPI_XFER, SPI_FLASH_SIZE - offset)
+            data = s.brcm_spi_read(offset, read_len)[resp_offset:resp_offset+read_len]
+            offset += read_len
             dump.append(data)
             print('%4x %s' % (offset, binascii.hexlify(data)))
         with open(fname, 'wb') as f:
