@@ -161,14 +161,14 @@ class ProController:
         with open(fname, 'wb') as f:
             f.write(b''.join(dump))
 
-'''
+
 c = ProController()
 print(binascii.hexlify(c.cmd_80_08()))
 print(binascii.hexlify(c.cmd_80_07()))
 print(binascii.hexlify(c.cmd_80_01()))
 c.cmd_80_02()
 #c.cmd_80_04()
-#'''
+
 '''
 i = 0
 while True:
@@ -178,34 +178,3 @@ while True:
         break
     i += 1
 #'''
-
-buf = open('./pro_brcm_patchflash.fw0.bin', 'rb').read()
-o = 0
-while o < len(buf):
-    chunk_type = struct.unpack('B', buf[o:o+1])[0]
-    o += 1
-    chunk_len = struct.unpack('<H', buf[o:o+2])[0]
-    o += 2
-    chunk = buf[o:o+chunk_len]
-    verbose = True
-    print('%5x: %02x %04x' % (o - 3, chunk_type, chunk_len), end='' if verbose else '\n')
-    if verbose: print(' %s' % (binascii.hexlify(chunk)))
-    
-    if chunk_type == 0xfe and chunk_len == 0:
-        print('end')
-        break
-    elif chunk_type == 0x08:
-        # <u8 index?><u8[6] unknown><u32 unk><u32 addr>
-        # maybe some sort of thunk/reloc?
-        index, unk1, unk2, unk3, unk4, addr = struct.unpack('<B3HLL', chunk)
-        print('%2x %4x %4x %4x %8x %8x' % (index, unk1, unk2, unk3, unk4, addr))
-    elif chunk_type == 0x0b:
-        # <u32 addr>
-        addr = struct.unpack('<L', chunk)[0]
-        print('%8x' % (addr))
-    elif chunk_type == 0x0a:
-        # <u32 addr><data...>
-        addr = struct.unpack('<L', chunk[:4])[0]
-        print('%8x:%8x' % (addr, addr+len(chunk[4:])))
-
-    o += chunk_len
