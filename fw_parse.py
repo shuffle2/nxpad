@@ -12,10 +12,11 @@ def print_rec_b(rec):
 def print_rec_fe(rec):
     print('end')
 
-parser = FwParser('./pro_brcm_flash.bin')
-parser.process({
-    0x08 : print_rec_8,
-    0x0a : print_rec_a,
-    0x0b : print_rec_b,
-    0xfe : print_rec_fe,
-})
+with open('./pro_brcm_flash.bin', 'rb') as f:
+    parser = FwParser(f)
+    parser.process({
+        0x08 : print_rec_8,
+        0x0a : print_rec_a,
+        0x0b : print_rec_b,
+        0xfe : print_rec_fe,
+    })

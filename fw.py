@@ -8,19 +8,17 @@ class FwParser:
         ULInt16('size'),
         Bytes('data', lambda c: c.size)
     )
-    def __init__(s, filename):
+    def __init__(s, f):
         s.parsers = {
             0x08 : s.parse_8,
             0x0a : s.parse_a,
             0x0b : s.parse_b,
         }
-        s.chunks = []
-        with open(filename, 'rb') as f:
-            f.seek(0x3b3)
-            ds0_offset = struct.unpack('<L', f.read(4))[0]
-            f.seek(ds0_offset)
-            s.chunks = RepeatUntil(lambda obj, ctx: obj.record_type == 0xfe,
-                s.chunk_t).parse_stream(f)
+        f.seek(0x3b3)
+        ds0_offset = struct.unpack('<L', f.read(4))[0]
+        f.seek(ds0_offset)
+        s.chunks = RepeatUntil(lambda obj, ctx: obj.record_type == 0xfe,
+            s.chunk_t).parse_stream(f)
     def print_chunk(s, chunk):
         print('%02x[raw]: %s' % (chunk.record_type, binascii.hexlify(chunk.data)))
     def process(s, handlers, verbose = False):
