@@ -2,6 +2,8 @@ from construct import *
 import binascii
 import struct
 
+OTA_MAGIC = binascii.unhexlify('AA55F00F68E597D2')
+
 class FwParser:
     chunk_t = Struct('chunk',
         ULInt8('record_type'),
@@ -15,14 +17,32 @@ class FwParser:
             0x0b : s.parse_b,
         }
         f.seek(0x3b3)
-        ds0_offset = struct.unpack('<L', f.read(4))[0]
-        f.seek(ds0_offset)
-        s.chunks = RepeatUntil(lambda obj, ctx: obj.record_type == 0xfe,
-            s.chunk_t).parse_stream(f)
+        s.fw_offsets = [struct.unpack('<L', f.read(4))[0]]
+        s.active_fw = 0
+        
+        f.seek(0x1ff4)
+        ds1_magic = f.read(8)
+        if ds1_magic == OTA_MAGIC:
+            s.active_fw = 1
+            s.fw_offsets.append(struct.unpack('<L', f.read(4))[0])
+        
+        s.fw = []
+        for offset in s.fw_offsets:
+            f.seek(offset)
+            if f.read(3) == b'\xff\xff\xff':
+                s.fw.append([])
+                continue
+            f.seek(offset)
+            s.fw.append(RepeatUntil(lambda obj, ctx: obj.record_type == 0xfe,
+                s.chunk_t).parse_stream(f))
     def print_chunk(s, chunk):
         print('%02x[raw]: %s' % (chunk.record_type, binascii.hexlify(chunk.data)))
-    def process(s, handlers, verbose = False):
-        for chunk in s.chunks:
+    def fw_present(s, index):
+        return index < len(s.fw) and len(s.fw[index]) > 1
+    def process(s, handlers, fw_index = None, verbose = False):
+        if fw_index is None:
+            fw_index = s.active_fw
+        for chunk in s.fw[fw_index]:
             if verbose or chunk.record_type not in handlers:
                 s.print_chunk(chunk)
             if chunk.record_type in handlers:

@@ -2,13 +2,13 @@
 After using script, use analyzer to force the entire region to be code...
 '''
 from fw import FwParser
-import idaapi, idc, ida_auto
+import idaapi, idc, ida_auto, ida_kernwin
 
 def accept_file(li, n):
     if n > 0: return 0
     try:
         parser = FwParser(li)
-        if len(parser.chunks) > 0:
+        if len(parser.fw[0]) > 0:
             return "Broadcom patchram firmware loader"
     except:
         pass
@@ -30,14 +30,23 @@ def load_file(li, neflags, fmt):
 
     parser = FwParser(li)
 
+    fw_index = parser.active_fw
+    if len(parser.fw) > 1:
+        msg = ['Firmware has more than one image, enter the index of the one to load:']
+        for i in range(len(parser.fw)):
+            if parser.fw_present(i):
+                msg.append('%i @ 0x%08x %s' % (i, parser.fw_offsets[i],
+                    '[active]' if i == parser.active_fw else ''))
+        fw_index = ida_kernwin.asklong(0, '\n'.join(msg))
+
     addr_range = [0xffffffff, 0]
     def update_addr_range(r):
         addr_range[0] = min(r.addr, addr_range[0])
         addr_range[1] = max(r.addr, addr_range[1])
-    parser.process({0x0a : update_addr_range})
+    parser.process({0x0a : update_addr_range}, fw_index)
     make_seg(addr_range)
     idc.SetReg(addr_range[0], 't', 1)
 
-    parser.process({0x0a : lambda r: idaapi.put_many_bytes(r.addr, r.data)})
+    parser.process({0x0a : lambda r: idaapi.put_many_bytes(r.addr, r.data)}, fw_index)
 
     return 1
