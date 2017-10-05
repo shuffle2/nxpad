@@ -3,8 +3,9 @@ import binascii
 import sys
 
 def print_rec_8(rec):
-    print('08: %2x %4x %4x %4x %8x %8x' % (rec.index, rec.unk1, rec.unk2,
-        rec.unk3, rec.unk4, rec.addr))
+    print('08: %2x %8x:%8x %s %4x %4x %4x' % (rec.index, rec.addr, 
+        rec.addr + 4,  binascii.hexlify(rec.data), rec.unk1, 
+        rec.unk2, rec.body_size))
 def print_rec_a(rec):
     print('0a: %8x:%8x %s' % (rec.addr, rec.addr + len(rec.data),
         binascii.hexlify(rec.data)))
