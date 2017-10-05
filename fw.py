@@ -36,14 +36,18 @@ class FwParser:
             s.fw.append(RepeatUntil(lambda obj, ctx: obj.record_type == 0xfe,
                 s.chunk_t).parse_stream(f))
     def print_chunk(s, chunk):
-        print('%02x[raw]: %s' % (chunk.record_type, binascii.hexlify(chunk.data)))
+        print('%02X[raw]: %s' % (chunk.record_type, binascii.hexlify(chunk.data)))
     def fw_present(s, index):
         return index < len(s.fw) and len(s.fw[index]) > 1
-    def process(s, handlers, fw_index = None, verbose = False):
+    def process(s, handlers, fw_index = None, verbose = 1):
         if fw_index is None:
             fw_index = s.active_fw
         for chunk in s.fw[fw_index]:
-            if verbose or chunk.record_type not in handlers:
+            # Only unknown
+            if verbose == 1 and chunk.record_type not in handlers:
+                s.print_chunk(chunk)
+            # Full
+            elif verbose == 2:
                 s.print_chunk(chunk)
             if chunk.record_type in handlers:
                 parsed = chunk.data
@@ -51,14 +55,14 @@ class FwParser:
                     parsed = s.parsers[chunk.record_type](chunk.data)
                 handlers[chunk.record_type](parsed)
     def parse_8(s, data):
-        # maybe some sort of thunk/reloc?
         return Struct('rec_8',
             ULInt8('index'),
+            ULInt32('addr'),
+            Bytes('data', 4),
             ULInt16('unk1'),
             ULInt16('unk2'),
-            ULInt16('unk3'),
-            ULInt32('unk4'),
-            ULInt32('addr')
+            # Size of data after header. If 0, unk2 is 0 and data is still patched
+            ULInt16('body_size')
         ).parse(data)
     def parse_a(s, data):
         return Struct('rec_a',
