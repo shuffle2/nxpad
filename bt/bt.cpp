@@ -116,7 +116,7 @@ int main() {
 
 	//dump_flash(handle);
 	// !!DO NOT USE THIS UNLESS YOU HAVE PATCHED FLASH. OTHERWISE CMD 0x12 ERASES FLASH!!
-	//dump_mem(handle);
+	//dump_rom(handle);
 
 	return 0;
 }
